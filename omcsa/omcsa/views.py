@@ -1,11 +1,8 @@
-from django.http import HttpResponse, HttpResponseRedirect
-from django.utils import timezone
-from datetime import timedelta
-from django.shortcuts import render, redirect
-from textblob import TextBlob
+from django.shortcuts import render
 from langdetect import detect
 from googletrans import Translator
 import pycountry
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
 def get_language_name(lang_code):
     try:
@@ -15,29 +12,45 @@ def get_language_name(lang_code):
         return pycountry.languages.get(alpha_2=lang_code).name
     except AttributeError:
         return lang_code
+
 def index(request):
     sentiments = []
-    translator = Translator()
-    if request.method == 'POST':
-        if 'file' in request.FILES:
-            file = request.FILES['file']
-            comments = file.read().decode('utf-8').splitlines()
-        else:
-            comments = [request.POST.get('comment')]
+    display_mode = request.POST.get('display_mode', 'graph')
+    uploaded_file = request.FILES.get('file') if request.method == 'POST' else None
 
-        for comment in comments:
-            lang_code = detect(comment)
+    if request.method == 'POST':
+        comment = request.POST.get('comment', '')
+        if uploaded_file:
+            comments = uploaded_file.read().decode('utf-8').splitlines()
+        else:
+            comments = [comment]
+
+        sia = SentimentIntensityAnalyzer()
+        translator = Translator()
+
+        for original_comment in comments:
+            lang_code = detect(original_comment)
             lang_name = get_language_name(lang_code)
-            original_comment = comment
-            if lang_code != 'en':
-                comment = translator.translate(comment, src=lang_code, dest='en').text
-            analysis = TextBlob(comment)
-            if analysis.sentiment.polarity > 0:
+            translated_comment = translator.translate(original_comment, dest='en').text if lang_code != 'en' else original_comment
+
+            sentiment_scores = sia.polarity_scores(translated_comment)
+            if sentiment_scores['compound'] > 0:
                 sentiment = 'Positive'
-            elif analysis.sentiment.polarity < 0:
+            elif sentiment_scores['compound'] < 0:
                 sentiment = 'Negative'
             else:
                 sentiment = 'Neutral'
-            sentiments.append((original_comment, lang_name, sentiment))
+            sentiments.append((original_comment, lang_name, sentiment, translated_comment))
 
-    return render(request, 'index.html', {'sentiments': sentiments})
+    positive_count = len([s for s in sentiments if s[2] == 'Positive'])
+    neutral_count = len([s for s in sentiments if s[2] == 'Neutral'])
+    negative_count = len([s for s in sentiments if s[2] == 'Negative'])
+
+    return render(request, 'index.html', {
+        'sentiments': sentiments,
+        'positive_count': positive_count,
+        'neutral_count': neutral_count,
+        'negative_count': negative_count,
+        'display_mode': display_mode,
+        'uploaded_file': uploaded_file,
+    })        

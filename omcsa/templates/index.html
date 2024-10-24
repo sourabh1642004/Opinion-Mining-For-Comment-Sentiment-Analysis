@@ -1,29 +1,131 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Comment Form</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
-	<h1>Submit a Comment</h1>
-	<form method="post" enctype="multipart/form-data">
-		{% csrf_token %}
-		<textarea name="comment" rows="4" cols="50" placeholder="Enter your comment here..."></textarea><br>
-		<input type="file" name="file"><br>
-		<input type="submit" value="Submit">
-	</form>
-	{% if sentiments %}
-	<h2>Sentiment Analysis Results:</h2>
-	<ul>
-		{% for comment, lang, sentiment in sentiments %}
-		<li>Original: {{ comment }} (Language: {{ lang }}), Sentiment: {{ sentiment }}</li>
-		{% endfor %}
-	</ul>
-	{% endif %}
-	</form>
-</body>
+    <div class="container mt-5">
+        <h1 class="text-center animate__animated animate__fadeInDown">Sentiment Analysis</h1>
+        <form method="POST" enctype="multipart/form-data" class="mb-4">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="comment">Enter Comment:</label>
+                <input type="text" class="form-control" id="comment" name="comment" placeholder="Type your comment here...">
+            </div>
+            <div class="form-group">
+                <label for="file">Or Upload a File:</label>
+                <input type="file" class="form-control-file" id="file" name="file">
+                {% if uploaded_file %}
+                <p>Uploaded file: {{ uploaded_file.name }}</p>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label>Display Mode:</label><br>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="display_mode" id="displayGraph" value="graph" {% if display_mode == 'graph' %}checked{% endif %}>
+                    <label class="form-check-label" for="displayGraph">Graph</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="display_mode" id="displayComments" value="comments" {% if display_mode == 'comments' %}checked{% endif %}>
+                    <label class="form-check-label" for="displayComments">Individual Comments</label>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary animate__animated animate__pulse animate__infinite">Analyze</button>
+        </form>
 
+        <div id="loading-spinner" class="spinner-border text-primary" role="status" style="display: none;">
+            <span class="sr-only">Loading...</span>
+        </div>
+
+        {% if sentiments %}
+        <div class="row">
+            {% if display_mode == 'graph' %}
+            <div class="col-md-12 animate__animated animate__fadeInLeft">
+                <canvas id="sentimentChart"></canvas>
+            </div>
+            {% else %}
+            <div class="col-md-12 animate__animated animate__fadeInRight">
+                <h3>Sentiment Analysis Results</h3>
+                <ul class="list-group">
+                    {% for sentiment in sentiments %}
+                    <li class="list-group-item">
+                        <strong>Comment:</strong> {{ sentiment.0 }}<br>
+                        <strong>Language:</strong> {{ sentiment.1 }}<br>
+                        <strong>Sentiment:</strong> {{ sentiment.2 }}<br>
+                        {% if sentiment.3 %}
+                        <strong>Translated Comment:</strong> {{ sentiment.3 }}
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+        <script>
+            {% if display_mode == 'graph' %}
+            var ctx = document.getElementById('sentimentChart').getContext('2d');
+            var sentimentData = {
+                labels: ['Positive', 'Neutral', 'Negative'],
+                datasets: [{
+                    label: 'Sentiment Count',
+                    data: [
+                        {{ positive_count }},
+                        {{ neutral_count }},
+                        {{ negative_count }}
+                    ],
+                    backgroundColor: [
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(255, 99, 132, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(255, 99, 132, 1)'
+                    ],
+                    borderWidth: 1 
+                }]
+            };
+            var sentimentChart = new Chart(ctx, {
+                type: 'bar',
+                data: sentimentData,
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                        },
+                        tooltip: {
+                            enabled: true,
+                        }
+                    }
+                }
+            });
+            {% endif %}
+        </script>
+        {% endif %}
+    </div>
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="{% static 'js/script.js' %}"></script>
+</body>
 </html>
