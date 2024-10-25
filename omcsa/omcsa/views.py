@@ -6,6 +6,9 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from django.core.files.uploadedfile import InMemoryUploadedFile
 import io
 
+# Global variable to store the uploaded file in memory
+uploaded_file_content = None
+
 def get_language_name(lang_code):
     try:
         # Handle locale codes like 'zh-cn'
@@ -16,28 +19,20 @@ def get_language_name(lang_code):
         return lang_code
 
 def index(request):
+    global uploaded_file_content
     sentiments = []
     display_mode = request.POST.get('display_mode', 'graph')
     uploaded_file = request.FILES.get('file') if request.method == 'POST' else None
 
-    if uploaded_file:
-        request.session['uploaded_file'] = uploaded_file.read().decode('utf-8')
-    elif 'uploaded_file' in request.session:
-        uploaded_file = InMemoryUploadedFile(
-            file=io.BytesIO(request.session['uploaded_file'].encode('utf-8')),
-            field_name='file',
-            name='uploaded_file.txt',
-            content_type='text/plain',
-            size=len(request.session['uploaded_file']),
-            charset='utf-8'
-        )
-
-    if request.method == 'POST' or uploaded_file:
+    if request.method == 'POST' and uploaded_file:
+        uploaded_file_content = uploaded_file.read().decode('utf-8')
+    
+    if uploaded_file_content:
         comment = request.POST.get('comment', '')
-        if uploaded_file:
-            comments = uploaded_file.read().decode('utf-8').splitlines()
-        else:
-            comments = [comment]
+        comments = uploaded_file_content.splitlines()
+
+        if comment:
+            comments.append(comment)
 
         sia = SentimentIntensityAnalyzer()
         translator = Translator()
