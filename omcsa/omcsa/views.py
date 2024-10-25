@@ -3,6 +3,8 @@ from langdetect import detect
 from googletrans import Translator
 import pycountry
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from django.core.files.uploadedfile import InMemoryUploadedFile
+import io
 
 def get_language_name(lang_code):
     try:
@@ -18,7 +20,19 @@ def index(request):
     display_mode = request.POST.get('display_mode', 'graph')
     uploaded_file = request.FILES.get('file') if request.method == 'POST' else None
 
-    if request.method == 'POST':
+    if uploaded_file:
+        request.session['uploaded_file'] = uploaded_file.read().decode('utf-8')
+    elif 'uploaded_file' in request.session:
+        uploaded_file = InMemoryUploadedFile(
+            file=io.BytesIO(request.session['uploaded_file'].encode('utf-8')),
+            field_name='file',
+            name='uploaded_file.txt',
+            content_type='text/plain',
+            size=len(request.session['uploaded_file']),
+            charset='utf-8'
+        )
+
+    if request.method == 'POST' or uploaded_file:
         comment = request.POST.get('comment', '')
         if uploaded_file:
             comments = uploaded_file.read().decode('utf-8').splitlines()
@@ -53,4 +67,4 @@ def index(request):
         'negative_count': negative_count,
         'display_mode': display_mode,
         'uploaded_file': uploaded_file,
-    })        
+    })
