@@ -2,7 +2,7 @@ from django.shortcuts import render
 from langdetect import detect
 from googletrans import Translator
 import pycountry
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from transformers import pipeline
 from django.core.files.uploadedfile import InMemoryUploadedFile
 import io
 
@@ -21,45 +21,32 @@ def get_language_name(lang_code):
 def index(request):
     global uploaded_file_content
     sentiments = []
-    display_mode = request.POST.get('display_mode', 'graph')
     uploaded_file = request.FILES.get('file') if request.method == 'POST' else None
 
     if request.method == 'POST' and uploaded_file:
         uploaded_file_content = uploaded_file.read().decode('utf-8')
     
-    if uploaded_file_content:
-        comment = request.POST.get('comment', '')
-        comments = uploaded_file_content.splitlines()
+    comment = request.POST.get('comment', '')
+    comments = uploaded_file_content.splitlines() if uploaded_file_content else []
 
-        if comment:
-            comments.append(comment)
+    if comment:
+        comments.append(comment)
 
-        sia = SentimentIntensityAnalyzer()
+    if comments:
         translator = Translator()
+        sentiment_analyzer = pipeline('sentiment-analysis', model='distilbert-base-uncased-finetuned-sst-2-english')
 
         for original_comment in comments:
             lang_code = detect(original_comment)
             lang_name = get_language_name(lang_code)
             translated_comment = translator.translate(original_comment, dest='en').text if lang_code != 'en' else original_comment
 
-            sentiment_scores = sia.polarity_scores(translated_comment)
-            if sentiment_scores['compound'] > 0:
-                sentiment = 'Positive'
-            elif sentiment_scores['compound'] < 0:
-                sentiment = 'Negative'
-            else:
-                sentiment = 'Neutral'
-            sentiments.append((original_comment, lang_name, sentiment, translated_comment))
+            sentiment_result = sentiment_analyzer(translated_comment)[0]
+            sentiment = sentiment_result['label']
 
-    positive_count = len([s for s in sentiments if s[2] == 'Positive'])
-    neutral_count = len([s for s in sentiments if s[2] == 'Neutral'])
-    negative_count = len([s for s in sentiments if s[2] == 'Negative'])
+            sentiments.append((original_comment, lang_name, sentiment, translated_comment))
 
     return render(request, 'index.html', {
         'sentiments': sentiments,
-        'positive_count': positive_count,
-        'neutral_count': neutral_count,
-        'negative_count': negative_count,
-        'display_mode': display_mode,
         'uploaded_file': uploaded_file,
     })
