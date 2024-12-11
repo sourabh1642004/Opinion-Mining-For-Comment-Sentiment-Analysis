@@ -10,8 +10,6 @@
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -28,19 +26,7 @@
                 <input type="file" class="form-control-file" id="file" name="file">
                 {% if uploaded_file %}
                 <p>Uploaded file: {{ uploaded_file.name }}</p>
-                
                 {% endif %}
-            </div>
-            <div class="form-group">
-                <label>Display Mode:</label><br>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="display_mode" id="displayGraph" value="graph" {% if display_mode == 'graph' %}checked{% endif %}>
-                    <label class="form-check-label" for="displayGraph">Graph</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="display_mode" id="displayComments" value="comments" {% if display_mode == 'comments' %}checked{% endif %}>
-                    <label class="form-check-label" for="displayComments">Individual Comments</label>
-                </div>
             </div>
             <button type="submit" class="btn btn-primary animate__animated animate__pulse animate__infinite">Analyze</button>
         </form>
@@ -51,11 +37,6 @@
 
         {% if sentiments %}
         <div class="row">
-            {% if display_mode == 'graph' %}
-            <div class="col-md-12 animate__animated animate__fadeInLeft">
-                <canvas id="sentimentChart"></canvas>
-            </div>
-            {% else %}
             <div class="col-md-12 animate__animated animate__fadeInRight">
                 <h3>Sentiment Analysis Results</h3>
                 <ul class="list-group">
@@ -71,56 +52,7 @@
                     {% endfor %}
                 </ul>
             </div>
-            {% endif %}
         </div>
-        <script>
-            {% if display_mode == 'graph' %}
-            var ctx = document.getElementById('sentimentChart').getContext('2d');
-            var sentimentData = {
-                labels: ['Positive', 'Neutral', 'Negative'],
-                datasets: [{
-                    label: 'Sentiment Count',
-                    data: [
-                        {{ positive_count }},
-                        {{ neutral_count }},
-                        {{ negative_count }}
-                    ],
-                    backgroundColor: [
-                        'rgba(75, 192, 192, 0.2)',
-                        'rgba(255, 206, 86, 0.2)',
-                        'rgba(255, 99, 132, 0.2)'
-                    ],
-                    borderColor: [
-                        'rgba(75, 192, 192, 1)',
-                        'rgba(255, 206, 86, 1)',
-                        'rgba(255, 99, 132, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            };
-            var sentimentChart = new Chart(ctx, {
-                type: 'bar',
-                data: sentimentData,
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    },
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top',
-                        },
-                        tooltip: {
-                            enabled: true,
-                        }
-                    }
-                }
-            });
-            {% endif %}
-        </script>
         {% endif %}
     </div>
     <!-- Bootstrap JS and dependencies -->
