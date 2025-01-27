@@ -4,7 +4,7 @@ from sklearn.preprocessing import LabelEncoder
 import pickle
 
 # Load the IMDB dataset
-data = pd.read_csv('omcsa/IMDB Dataset.csv')
+data = pd.read_csv('omcsa/data/IMDB Dataset.csv')
 
 # Preprocess the data
 X = data['review'].values
