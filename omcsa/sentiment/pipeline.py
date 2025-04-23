@@ -48,9 +48,9 @@ class SentimentPipeline:
         text_pad = pad_sequences(text_seq, maxlen=self.max_length, padding='post', truncating='post')
         sentiment_score = self.model.predict(text_pad)[0][0]
         # Adjusted threshold for NEUTRAL sentiment
-        if sentiment_score > 0.6:
+        if sentiment_score > 0.575:
             sentiment = 'POSITIVE'
-        elif sentiment_score < 0.4:
+        elif sentiment_score < 0.425:
             sentiment = 'NEGATIVE'
         else:
             sentiment = 'NEUTRAL'
